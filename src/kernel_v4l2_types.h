@@ -46,6 +46,37 @@ typedef struct {
 	};
 } kernel_v4l2_buffer_t;
 
+// TIME32 variants only make sense under 32-bit kernels
+#if SIZEOF_KERNEL_LONG_T == 4
+#define KERNEL_V4L2_HAVE_TIME32
+#endif
+
+#ifdef KERNEL_V4L2_HAVE_TIME32
+typedef struct {
+	uint32_t			index;
+	uint32_t			type;
+	uint32_t			bytesused;
+	uint32_t			flags;
+	uint32_t			field;
+	kernel_old_timeval_t		timestamp;
+	struct v4l2_timecode		timecode;
+	uint32_t			sequence;
+	uint32_t			memory;
+	union {
+		uint32_t		offset;
+		unsigned long		userptr;
+		struct v4l2_plane	*planes;
+		int32_t			fd;
+	} m;
+	uint32_t			length;
+	uint32_t			reserved2;
+	union {
+		int32_t			request_fd;
+		uint32_t		reserved;
+	};
+} kernel_v4l2_buffer_time32_t;
+#endif
+
 typedef struct {
 	uint32_t				type;
 	union {
@@ -84,6 +115,20 @@ typedef struct {
 
 # undef VIDIOC_PREPARE_BUF
 # define VIDIOC_PREPARE_BUF	_IOWR('V',  93, kernel_v4l2_buffer_t)
+
+#ifdef KERNEL_V4L2_HAVE_TIME32
+# undef VIDIOC_QUERYBUF_TIME32
+# define VIDIOC_QUERYBUF_TIME32	_IOWR('V',   9, kernel_v4l2_buffer_time32_t)
+
+# undef VIDIOC_QBUF_TIME32
+# define VIDIOC_QBUF_TIME32		_IOWR('V',  15, kernel_v4l2_buffer_time32_t)
+
+# undef VIDIOC_DQBUF_TIME32
+# define VIDIOC_DQBUF_TIME32		_IOWR('V',  17, kernel_v4l2_buffer_time32_t)
+
+# undef VIDIOC_PREPARE_BUF_TIME32
+# define VIDIOC_PREPARE_BUF_TIME32	_IOWR('V',  93, kernel_v4l2_buffer_time32_t)
+#endif
 
 /*
  * Constants based on struct v4l2_event are unreliable
