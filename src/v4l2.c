@@ -544,6 +544,10 @@ print_v4l2_timeval(const MPERS_PTR_ARG(kernel_v4l2_timeval_t *) const arg)
 		print_v4l2_timeval(&((where_).field_));	\
 	} while (0)
 
+#define IS_V4L2_BUFFER_TYPE_MPLANE(type) \
+	(((type) == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) \
+	 || ((type) == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE))
+
 static int
 print_v4l2_buffer_contents(struct tcb *const tcp, const unsigned int code,
 		  const kernel_ulong_t arg, kernel_v4l2_buffer_t b)
@@ -556,24 +560,67 @@ print_v4l2_buffer_contents(struct tcb *const tcp, const unsigned int code,
 	PRINT_FIELD_XVAL(b, memory, v4l2_memories,
 			 "V4L2_MEMORY_???");
 
-	if (b.memory == V4L2_MEMORY_MMAP) {
-		tprint_struct_next();
-		PRINT_FIELD_X(b, m.offset);
-	} else if (b.memory == V4L2_MEMORY_USERPTR) {
-		tprint_struct_next();
-		PRINT_FIELD_PTR(b, m.userptr);
-	}
-
 	tprint_struct_next();
 	PRINT_FIELD_U(b, length);
-	tprint_struct_next();
-	PRINT_FIELD_U(b, bytesused);
-	tprint_struct_next();
-	PRINT_FIELD_V4L2_BUFFER_FLAGS(b, flags);
-	if (code == VIDIOC_DQBUF) {
+
+	if (IS_V4L2_BUFFER_TYPE_MPLANE(b.type)) {
+		const uint32_t num_planes = b.length;
+		struct v4l2_plane first_plane;
+		if (num_planes > 0) {
+			if (0 == umove_or_printaddr(tcp, (kernel_ulong_t)b.m.planes, &first_plane)) {
+				tprint_struct_next();
+				tprints_field_name("m.planes");
+				tprint_struct_begin();
+
+				tprint_struct_begin();
+				PRINT_FIELD_U(first_plane, bytesused);
+				tprint_struct_next();
+				PRINT_FIELD_U(first_plane, length);
+
+				if (b.memory == V4L2_MEMORY_MMAP) {
+					tprint_struct_next();
+					PRINT_FIELD_X(first_plane, m.mem_offset);
+				} else if (b.memory == V4L2_MEMORY_USERPTR) {
+					tprint_struct_next();
+					PRINT_FIELD_PTR(first_plane, m.userptr);
+				} else if (b.memory == V4L2_MEMORY_DMABUF) {
+					tprint_struct_next();
+					PRINT_FIELD_FD(first_plane, m.fd, tcp);
+				}
+				tprint_struct_next();
+				PRINT_FIELD_X(first_plane, data_offset);
+				tprint_struct_end();
+
+				if (num_planes > 1) {
+					tprint_struct_next();
+					tprint_more_data_follows();
+				}
+
+				tprint_struct_end();
+			}
+		}
+	} else {
+		if (b.memory == V4L2_MEMORY_MMAP) {
+			tprint_struct_next();
+			PRINT_FIELD_X(b, m.offset);
+		} else if (b.memory == V4L2_MEMORY_USERPTR) {
+			tprint_struct_next();
+			PRINT_FIELD_PTR(b, m.userptr);
+		} else if (b.memory == V4L2_MEMORY_DMABUF) {
+			tprint_struct_next();
+			PRINT_FIELD_FD(b, m.fd, tcp);
+		}
+
 		tprint_struct_next();
-		PRINT_FIELD_V4L2_TIMEVAL(b, timestamp);
+		PRINT_FIELD_U(b, bytesused);
+		tprint_struct_next();
+		PRINT_FIELD_V4L2_BUFFER_FLAGS(b, flags);
+		if (code == VIDIOC_DQBUF) {
+			tprint_struct_next();
+			PRINT_FIELD_V4L2_TIMEVAL(b, timestamp);
+		}
 	}
+
 	tprint_struct_next();
 	tprint_more_data_follows();
 
