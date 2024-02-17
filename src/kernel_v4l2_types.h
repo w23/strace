@@ -46,7 +46,7 @@ typedef struct {
 	};
 } kernel_v4l2_buffer_t;
 
-// TIME32 variants only make sense under 32-bit kernels
+/* TIME32 variants only make sense under 32-bit kernels */
 #if SIZEOF_KERNEL_LONG_T == 4
 #define KERNEL_V4L2_HAVE_TIME32
 #endif
