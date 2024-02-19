@@ -546,14 +546,14 @@ print_v4l2_timeval(const MPERS_PTR_ARG(kernel_v4l2_timeval_t *) const arg)
 
 static void
 print_v4l2_buffer_contents(struct tcb *const tcp, const unsigned int code,
-		  const kernel_ulong_t arg, kernel_v4l2_buffer_t b)
+		  const kernel_v4l2_buffer_t *b)
 {
 	if (entering(tcp)) {
-		PRINT_FIELD_XVAL(b, type, v4l2_buf_types,
+		PRINT_FIELD_XVAL(*b, type, v4l2_buf_types,
 				 "V4L2_BUF_TYPE_???");
 		if (code != VIDIOC_DQBUF) {
 			tprint_struct_next();
-			PRINT_FIELD_U(b, index);
+			PRINT_FIELD_U(*b, index);
 		}
 
 		/* The rest of the buffer hasn't been filled in yet */
@@ -562,29 +562,29 @@ print_v4l2_buffer_contents(struct tcb *const tcp, const unsigned int code,
 
 	if (code == VIDIOC_DQBUF) {
 		tprint_struct_next();
-		PRINT_FIELD_U(b, index);
+		PRINT_FIELD_U(*b, index);
 	}
 	tprint_struct_next();
-	PRINT_FIELD_XVAL(b, memory, v4l2_memories,
+	PRINT_FIELD_XVAL(*b, memory, v4l2_memories,
 			 "V4L2_MEMORY_???");
 
-	if (b.memory == V4L2_MEMORY_MMAP) {
+	if (b->memory == V4L2_MEMORY_MMAP) {
 		tprint_struct_next();
-		PRINT_FIELD_X(b, m.offset);
-	} else if (b.memory == V4L2_MEMORY_USERPTR) {
+		PRINT_FIELD_X(*b, m.offset);
+	} else if (b->memory == V4L2_MEMORY_USERPTR) {
 		tprint_struct_next();
-		PRINT_FIELD_PTR(b, m.userptr);
+		PRINT_FIELD_PTR(*b, m.userptr);
 	}
 
 	tprint_struct_next();
-	PRINT_FIELD_U(b, length);
+	PRINT_FIELD_U(*b, length);
 	tprint_struct_next();
-	PRINT_FIELD_U(b, bytesused);
+	PRINT_FIELD_U(*b, bytesused);
 	tprint_struct_next();
-	PRINT_FIELD_V4L2_BUFFER_FLAGS(b, flags);
+	PRINT_FIELD_V4L2_BUFFER_FLAGS(*b, flags);
 	if (code == VIDIOC_DQBUF) {
 		tprint_struct_next();
-		PRINT_FIELD_V4L2_TIMEVAL(b, timestamp);
+		PRINT_FIELD_V4L2_TIMEVAL(*b, timestamp);
 	}
 	tprint_struct_next();
 	tprint_more_data_follows();
@@ -603,13 +603,13 @@ print_v4l2_buffer(struct tcb *const tcp, const unsigned int code,
 
 		tprint_struct_begin();
 
-		print_v4l2_buffer_contents(tcp, code, arg, b);
+		print_v4l2_buffer_contents(tcp, code, &b);
 
 		return 0;
 	}
 
 	if (!syserror(tcp) && !umove(tcp, arg, &b)) {
-		print_v4l2_buffer_contents(tcp, code, arg, b);
+		print_v4l2_buffer_contents(tcp, code, &b);
 	}
 
 	tprint_struct_end();
@@ -620,30 +620,30 @@ print_v4l2_buffer(struct tcb *const tcp, const unsigned int code,
 #ifdef KERNEL_V4L2_HAVE_TIME32
 static void
 print_v4l2_buffer_time32_contents(struct tcb *const tcp, const unsigned int code,
-		  const kernel_ulong_t arg, kernel_v4l2_buffer_time32_t b32)
+		  const kernel_v4l2_buffer_time32_t *b32)
 {
 	/* "Upsample" to full 64-bit buffer to reuse the same printing function */
 	kernel_v4l2_buffer_t b = {
-		.index = b32.index,
-		.type = b32.type,
-		.bytesused = b32.bytesused,
-		.flags = b32.flags,
-		.field = b32.field,
+		.index = b32->index,
+		.type = b32->type,
+		.bytesused = b32->bytesused,
+		.flags = b32->flags,
+		.field = b32->field,
 		.timestamp = {
-			.tv_sec = sign_extend_unsigned_to_ll(b32.timestamp.tv_sec),
-			.tv_usec = zero_extend_signed_to_ull(b32.timestamp.tv_usec),
+			.tv_sec = sign_extend_unsigned_to_ll(b32->timestamp.tv_sec),
+			.tv_usec = zero_extend_signed_to_ull(b32->timestamp.tv_usec),
 		},
-		.timecode = b32.timecode,
-		.sequence = b32.sequence,
-		.memory = b32.memory,
-		.length = b32.length,
-		.reserved2 = b32.reserved2,
-		.request_fd = b32.request_fd,
+		.timecode = b32->timecode,
+		.sequence = b32->sequence,
+		.memory = b32->memory,
+		.length = b32->length,
+		.reserved2 = b32->reserved2,
+		.request_fd = b32->request_fd,
 	};
 
-	memcpy(&b.m, &b32.m, sizeof(b.m));
+	memcpy(&b.m, &b32->m, sizeof(b.m));
 
-	print_v4l2_buffer_contents(tcp, code, arg, b);
+	print_v4l2_buffer_contents(tcp, code, &b);
 }
 
 static int
@@ -659,13 +659,13 @@ print_v4l2_buffer_time32(struct tcb *const tcp, const unsigned int code,
 
 		tprint_struct_begin();
 
-		print_v4l2_buffer_time32_contents(tcp, code, arg, b32);
+		print_v4l2_buffer_time32_contents(tcp, code, &b32);
 
 		return 0;
 	}
 
 	if (!syserror(tcp) && !umove(tcp, arg, &b32)) {
-		print_v4l2_buffer_time32_contents(tcp, code, arg, b32);
+		print_v4l2_buffer_time32_contents(tcp, code, &b32);
 	}
 
 	tprint_struct_end();
