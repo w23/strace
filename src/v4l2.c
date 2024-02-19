@@ -1529,9 +1529,11 @@ MPERS_PRINTER_DECL(int, v4l2_ioctl, struct tcb *const tcp,
 
 #ifdef KERNEL_V4L2_HAVE_TIME32
 	case VIDIOC_QUERYBUF_TIME32: /* RW */
+		return print_v4l2_buffer_time32(tcp, VIDIOC_QUERYBUF, arg);
 	case VIDIOC_QBUF_TIME32: /* RW */
+		return print_v4l2_buffer_time32(tcp, VIDIOC_QBUF, arg);
 	case VIDIOC_DQBUF_TIME32: /* RW */
-		return print_v4l2_buffer_time32(tcp, code, arg);
+		return print_v4l2_buffer_time32(tcp, VIDIOC_DQBUF, arg);
 #endif
 
 	case VIDIOC_G_FBUF: /* R */
