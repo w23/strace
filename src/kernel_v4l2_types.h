@@ -46,19 +46,29 @@ typedef struct {
 	};
 } kernel_v4l2_buffer_t;
 
-/* TIME32 variants only make sense under 32-bit kernels */
-#if SIZEOF_KERNEL_LONG_T == 4
-#define KERNEL_V4L2_HAVE_TIME32
-#endif
+# if HAVE_ARCH_TIME32_SYSCALLS || HAVE_ARCH_TIMESPEC32
+#  define KERNEL_V4L2_HAVE_TIME32 1
 
-#ifdef KERNEL_V4L2_HAVE_TIME32
+/* On all 32-bit architectures and on 64-bit ones with COMPAT enabled
+ * some syscalls can have both variants: with 64 bit and with 32 bit time.
+ *
+ * See COMPAT_32BIT_TIME in kernel/arch/Kconfig
+ */
+
+/* See kernel/include/vdso/time32.h */
+typedef struct kernel_old_timeval32_t {
+	int32_t	tv_sec;
+	int32_t	tv_usec;
+} kernel_old_timeval32_t;
+
+/* See kernel/include/media/v4l2-ioctl.h */
 typedef struct {
 	uint32_t			index;
 	uint32_t			type;
 	uint32_t			bytesused;
 	uint32_t			flags;
 	uint32_t			field;
-	kernel_old_timeval_t		timestamp;
+	kernel_old_timeval32_t		timestamp;
 	struct v4l2_timecode		timecode;
 	uint32_t			sequence;
 	uint32_t			memory;
@@ -75,7 +85,7 @@ typedef struct {
 		uint32_t		reserved;
 	};
 } kernel_v4l2_buffer_time32_t;
-#endif
+# endif /* HAVE_ARCH_TIME32_SYSCALLS || HAVE_ARCH_TIMESPEC32 */
 
 typedef struct {
 	uint32_t				type;

@@ -11,6 +11,7 @@
 #include "defs.h"
 
 #include DEF_MPERS_TYPE(kernel_v4l2_buffer_t)
+#include DEF_MPERS_TYPE(kernel_v4l2_buffer_time32_t)
 #include DEF_MPERS_TYPE(kernel_v4l2_event_t)
 #include DEF_MPERS_TYPE(kernel_v4l2_timeval_t)
 #include DEF_MPERS_TYPE(struct_v4l2_clip)
@@ -633,7 +634,6 @@ print_v4l2_buffer_time32_contents(struct tcb *const tcp, const unsigned int code
 			.tv_sec = sign_extend_unsigned_to_ll(b32->timestamp.tv_sec),
 			.tv_usec = zero_extend_signed_to_ull(b32->timestamp.tv_usec),
 		},
-		.timecode = b32->timecode,
 		.sequence = b32->sequence,
 		.memory = b32->memory,
 		.length = b32->length,
@@ -641,6 +641,7 @@ print_v4l2_buffer_time32_contents(struct tcb *const tcp, const unsigned int code
 		.request_fd = b32->request_fd,
 	};
 
+	memcpy(&b.timecode, &b32->timecode, sizeof(struct v4l2_timecode));
 	memcpy(&b.m, &b32->m, sizeof(b.m));
 
 	print_v4l2_buffer_contents(tcp, code, &b);
